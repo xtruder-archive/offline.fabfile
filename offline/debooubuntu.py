@@ -1,6 +1,13 @@
+# -*- coding: utf-8 -*-
+"""
+.. module:: debooubuntu.py
+   :platform: Unix
+   :synopsis: Script for creating bootable debian based systems
+"""
+
 import os
 import fabric.contrib.files
-from fabric.api import task, execute, env, run, sudo, put
+from fabric.api import task, execute, env, run, sudo
 from fabric.utils import puts, warn, error
 from fabric.contrib.console import confirm
 from fabric.contrib.files import exists
@@ -40,6 +47,13 @@ def root():
 
 @task
 def prepare( size=2000 ):
+    """
+    Prepares virtual disk images
+
+    :param size: Size of an image
+    :type size: int
+    """
+
     with root():
         if exists("root.img"):
             if not confirm("Do you want to create new image?"):
@@ -54,6 +68,13 @@ def prepare( size=2000 ):
 
 @task
 def resize( new_size=1800 ):
+    """
+    Resizes virtual disk image
+
+    :param new_size: new size
+    :type new_size: int
+    """
+
     with root():
         # mount image without devices, create temp image and copy data
         mount(False)
@@ -71,6 +92,13 @@ def resize( new_size=1800 ):
 
 @task
 def mount(devices=True):
+    """
+    Mounts virtual disk image and required devices
+
+    :param devices: Should we mount devices
+    :type devices: boolean
+    """
+
     with root():
         if not exists("root.img"):
             if confirm("Root image does not seem to exist, create one?"):
@@ -92,6 +120,10 @@ def mount(devices=True):
 
 @task
 def unmount():
+    """
+    Unmounts virtual disk image and devices
+    """
+
     with root():
         with settings(warn_only=True):
             sudo("sudo lsof -t mnt/ | sudo xargs -r kill")
@@ -105,6 +137,17 @@ def unmount():
 
 @task
 def debootstrap(release= None, mirror= None, target_arch= None):
+    """
+    Debootstraps debian based image
+
+    :param release: [Debian](http://www.debian.org/releases/)/[Ubuntu](https://wiki.ubuntu.com/DevelopmentCodeNames) release name
+    :type release: str
+    :param mirror: Url of the mirror (default http://de.archive.ubuntu.com/ubuntu/")
+    :type mirror: str
+    :param target_arch: architecture name like x86 or amd64
+    :type target_arch: str
+    """
+
     opts = dict(
             release= release or env.get("release") or "oneiric",
             mirror= mirror or env.get("mirror") or "http://de.archive.ubuntu.com/ubuntu/",
@@ -118,12 +161,28 @@ def debootstrap(release= None, mirror= None, target_arch= None):
         puts("""Debootstraping release=%(release)s
             target=%(target)s mirror=%(mirror)s
             target_arch=%(target_arch)s to %(target)s""" % opts)
-        with settings(warn_only=True):
-            ret= sudo("debootstrap --arch %(target_arch)s %(release)s %(target)s %(mirror)s" % opts)
+        sudo("debootstrap --arch %(target_arch)s %(release)s %(target)s %(mirror)s" % opts)
 
 @task
 def install(password= None, start_ssh=True, release= None, target_arch= None,
             install_packages= True):
+    """
+    Creates bootable debian based systems
+
+    :param password: Password to set (default root)
+    :type password: str
+    :param start_ssh: Should ssh be started on boot (default True)
+    :type start_ssh: booblean
+    :param release: [Debian](http://www.debian.org/releases/)/[Ubuntu](https://wiki.ubuntu.com/DevelopmentCodeNames) release name
+    :type release: str
+    :param mirror: Url of the mirror (default http://de.archive.ubuntu.com/ubuntu/")
+    :type mirror: str
+    :param target_arch: architecture name like x86 or amd64
+    :type target_arch: str
+    :param install_packages: Should additional pacakges be installed (default True)
+    :type install_packages: boolean
+    """
+
     opts = dict(
             release= release or env.get("release") or "oneiric",
             target_arch= target_arch or env.get("target_arch") or "amd64",
@@ -193,6 +252,17 @@ EOF\n
 
 @task
 def flash(fsroot= None, swap= None, home= None):
+    """
+    Flashes created debian based image on flash or any disk drive
+
+    :param fsroot: Root device (default /dev/sdb1)
+    :type fsroot: str
+    :param swap: Swap device (default /dev/sdb2)
+    :type swap: str
+    :param home: Home device (optional)
+    :type home: str
+    """
+
     opts = dict(
             root= fsroot or env.get("root") or "/dev/sdb1",
             swap= swap or env.get("swap") or "/dev/sdb2",
@@ -235,5 +305,4 @@ EOF\n
         chroot("update grub")
         execute(unmount)
 
-        #puts("Writing image back...")
-        #sudo("dd if=%(root)s of=root.img")
+        puts("Image created please dd it to your device")

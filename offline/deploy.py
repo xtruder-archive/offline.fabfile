@@ -1,4 +1,11 @@
-from fabric.api import task, execute, env, run, sudo, put
+# -*- coding: utf-8 -*-
+"""
+.. module:: debooubuntu.py
+   :platform: Unix
+   :synopsis: My core deploy scripts
+"""
+
+from fabric.api import task, env, run, sudo
 from fabric.contrib.files import sed
 
 from cuisine import *
